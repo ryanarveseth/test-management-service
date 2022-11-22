@@ -1,15 +1,19 @@
 package com.smoketesting.sites.service;
 
+import com.smoketesting.sites.data.obj.Alert;
+import com.smoketesting.sites.data.obj.Constants;
 import com.smoketesting.sites.data.obj.TestCase;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-import java.net.URISyntaxException;
-import java.net.UnknownHostException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Objects;
+
+import static com.smoketesting.sites.service.SiteService.queryWhoIsAndPingUrl;
 
 @Component
 public class ScheduleService {
@@ -38,25 +42,41 @@ public class ScheduleService {
 //        }
 //    }
 
-    @Scheduled(fixedRate = ONE_MINUTE)
+    @Scheduled(fixedRate = ONE_DAY)
     public void runAllTestsAndLogTime() {
         try {
             List<TestCase> tests = testService.getAllTests();
             tests.forEach(test -> {
-                String url = test.getTestUrl();
                 try {
-                    SiteService.getWhoIsInfo(url);
-                    Thread.sleep(2000);
-                } catch (URISyntaxException | InterruptedException e) {
+                    TestCase updatedCase = TestCase.copy(test);
+                    queryWhoIsAndPingUrl(updatedCase);
+                    Date now = new Date();
+                    updatedCase.setLastChecked(now);
+
+                    if (test.getIp() != null && !Objects.equals(test.getIp(), updatedCase.getIp())) {
+                        Alert alert = new Alert(now, String.format("Current IP (%s) does not match previous IP (%s)!", updatedCase.getIp(), test.getIp()));
+                        updatedCase.addAlert(alert);
+                    }
+
+                    if (updatedCase.getStatusCode() == 404) {
+                        Alert alert = new Alert(now, "URL status returned a 404!");
+                        updatedCase.addAlert(alert);
+                    } else if (!Constants.STATUSES.contains(updatedCase.getStatusCode())) {
+                        Alert alert = new Alert(now, String.format("Current URL status code (%s) does not match valid statuses (%s)!", updatedCase.getStatusCode(), Constants.STATUSES));
+                        updatedCase.addAlert(alert);
+                    }
+
+                    testService.updateTest(updatedCase);
+                    Thread.sleep(1000);
+                } catch (Exception e) {
                     throw new RuntimeException(e);
-                } catch (UnknownHostException e) {
-                    e.printStackTrace();
                 }
             });
 
             System.out.println("Finished all tests at: " + dateFormat.format(new Date()));
         } catch (Exception e) {
             System.out.println("There was an error running your tests.");
+            e.printStackTrace();
         }
     }
 }

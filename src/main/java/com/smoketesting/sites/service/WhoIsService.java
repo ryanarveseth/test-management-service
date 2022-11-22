@@ -16,19 +16,20 @@ public class WhoIsService {
     private static Pattern pattern;
     private Matcher matcher;
 
+    private static final String WHOIS_SERVER = "whois.iana.org";
+
     private static final String WHOIS_SERVER_PATTERN = "Whois Server:\\s(.*)";
     static { pattern = Pattern.compile(WHOIS_SERVER_PATTERN); }
 
-    public String getWhoIs(String domainName) throws UnknownHostException {
-        StringBuilder result = new StringBuilder("");
+    public String getWhoIs(String domainName) {
+        StringBuilder result = new StringBuilder();
         try {
             String extension = Arrays
                     .stream(domainName.split("\\."))
                     .reduce((first, second) -> second)
                     .orElse(null);
 
-            String server = "whois.iana.org";
-            Socket socket = new Socket(server, 43);
+            Socket socket = new Socket(WHOIS_SERVER, 43);
             OutputStream outputStream = socket.getOutputStream();
             BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             DataOutputStream dataOutputStream = new DataOutputStream(outputStream);
@@ -37,7 +38,6 @@ public class WhoIsService {
             dataOutputStream.flush();
 
             List<String> res = in.lines().collect(Collectors.toList());
-            System.out.println(res);
             String whoisServerUrl = Arrays.stream(
                             res
                             .stream()

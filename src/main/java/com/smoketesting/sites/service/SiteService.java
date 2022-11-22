@@ -1,23 +1,15 @@
 package com.smoketesting.sites.service;
 
+import com.smoketesting.sites.data.obj.TestCase;
+import com.smoketesting.sites.data.obj.WhoIsData;
+import com.smoketesting.sites.util.WhoIsConverter;
+
 import java.io.IOException;
 import java.net.*;
 import java.util.Arrays;
 import java.util.stream.Collectors;
 
 public class SiteService {
-
-    public static boolean isReachable(String url) throws IOException {
-        HttpURLConnection httpUrlConnection = (HttpURLConnection) new URL(url).openConnection();
-        httpUrlConnection.setRequestMethod("GET");
-
-        try {
-            int responseCode = httpUrlConnection.getResponseCode();
-            return responseCode == HttpURLConnection.HTTP_OK;
-        } catch (UnknownHostException noInternetConnection) {
-            return false;
-        }
-    }
 
     public static String getDomain(String url) throws URISyntaxException {
         URI uri = new URI(url);
@@ -41,5 +33,35 @@ public class SiteService {
             e.printStackTrace();
             throw e;
         }
+    }
+
+    public static String getIpForURL(String url) throws Exception {
+        InetAddress inetAddress = InetAddress.getByName(new URL(url).getHost());
+        return inetAddress.getHostAddress();
+    }
+
+    public static int getStatusCodeForURL(String testUrl) throws Exception {
+        URL url = new URL(testUrl);
+        HttpURLConnection http = (HttpURLConnection)url.openConnection();
+        http.setRequestProperty("User-Agent", "Mozilla/5.0");
+        return http.getResponseCode();
+    }
+
+    public static WhoIsData getWhoIsDataForUrl(String url) throws UnknownHostException, URISyntaxException {
+        String whoIs = getWhoIsInfo(url);
+        return WhoIsConverter.convertWhoIsStringToWhoIsData(whoIs);
+    }
+
+    public static void queryWhoIsAndPingUrl(TestCase test) throws Exception {
+        String url = test.getUrl();
+
+        WhoIsData whoIsData = getWhoIsDataForUrl(url);
+        test.setWhoIsData(whoIsData);
+
+        String ipForUrl = getIpForURL(url);
+        test.setIp(ipForUrl);
+
+        int statusCode = getStatusCodeForURL(url);
+        test.setStatusCode(statusCode);
     }
 }
