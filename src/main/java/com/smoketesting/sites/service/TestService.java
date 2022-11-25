@@ -9,9 +9,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.Date;
 import java.util.List;
-import java.util.Objects;
-
-import static com.smoketesting.sites.service.SiteService.queryWhoIsAndPingUrl;
 
 @Service
 public class TestService {
@@ -19,8 +16,11 @@ public class TestService {
     @Autowired
     TestRepository testRepo;
 
+    @Autowired
+    SiteService siteService;
+
     private void validateWhoIsAndPingUrl(TestCase testCase) throws Exception {
-        queryWhoIsAndPingUrl(testCase);
+        siteService.queryWhoIsAndPingUrl(testCase);
         Date now = new Date();
         testCase.setLastChecked(now);
 
@@ -40,6 +40,10 @@ public class TestService {
 
     public TestCase updateTest(TestCase testCase) throws Exception {
         validateWhoIsAndPingUrl(testCase);
+        return testRepo.save(testCase);
+    }
+
+    public TestCase updateTestSkipWhoIs(TestCase testCase) throws Exception {
         return testRepo.save(testCase);
     }
 

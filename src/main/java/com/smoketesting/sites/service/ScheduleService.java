@@ -8,12 +8,9 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Objects;
-
-import static com.smoketesting.sites.service.SiteService.queryWhoIsAndPingUrl;
 
 @Component
 public class ScheduleService {
@@ -24,23 +21,10 @@ public class ScheduleService {
     @Autowired
     TestService testService;
 
-    private static final SimpleDateFormat dateFormat = new SimpleDateFormat("HH:mm:ss");
+    @Autowired
+    SiteService siteService;
 
-//    @Scheduled(fixedRate = ONE_HOUR * 12)
-//    public void cleanUpTests() {
-//        try {
-//            System.out.println("Starting cleaning tests at: " + dateFormat.format(new Date()));
-//            List<TestCase> cases = testService.getAllTests();
-//            cases.forEach(test -> {
-//                if (test.getTestUrl() == null || test.getValue() == null || test.getName().contains("Freebates Test #")) {
-//                    testService.deleteTestCase(test.getId());
-//                }
-//            });
-//            System.out.println("Finished cleaning tests at: " + dateFormat.format(new Date()));
-//        } catch (Exception e) {
-//            System.out.println("There was an error running your tests.");
-//        }
-//    }
+    private static final SimpleDateFormat dateFormat = new SimpleDateFormat("HH:mm:ss");
 
     @Scheduled(fixedRate = ONE_DAY)
     public void runAllTestsAndLogTime() {
@@ -49,9 +33,13 @@ public class ScheduleService {
             tests.forEach(test -> {
                 try {
                     TestCase updatedCase = TestCase.copy(test);
-                    queryWhoIsAndPingUrl(updatedCase);
+                    siteService.queryWhoIsAndPingUrl(updatedCase);
                     Date now = new Date();
                     updatedCase.setLastChecked(now);
+
+                    if (updatedCase.getAlerts() != null) {
+                        updatedCase.getAlerts().clear();
+                    }
 
                     if (test.getIp() != null && !Objects.equals(test.getIp(), updatedCase.getIp())) {
                         Alert alert = new Alert(now, String.format("Current IP (%s) does not match previous IP (%s)!", updatedCase.getIp(), test.getIp()));
@@ -66,7 +54,7 @@ public class ScheduleService {
                         updatedCase.addAlert(alert);
                     }
 
-                    testService.updateTest(updatedCase);
+                    testService.updateTestSkipWhoIs(updatedCase);
                     Thread.sleep(1000);
                 } catch (Exception e) {
                     throw new RuntimeException(e);

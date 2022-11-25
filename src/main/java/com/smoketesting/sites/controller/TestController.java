@@ -1,19 +1,12 @@
 package com.smoketesting.sites.controller;
 
 import com.smoketesting.sites.data.obj.TestCase;
-import com.smoketesting.sites.data.obj.WhoIsData;
 import com.smoketesting.sites.service.SiteService;
 import com.smoketesting.sites.service.TestService;
-import com.smoketesting.sites.util.WhoIsConverter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import java.net.InetAddress;
-import java.net.URISyntaxException;
-import java.net.UnknownHostException;
 import java.util.List;
-
-import static com.smoketesting.sites.service.SiteService.queryWhoIsAndPingUrl;
 
 @CrossOrigin(origins = {"http://localhost:3000", "http://localhost:8080", "http://smoke-test.local:3001"})
 @RestController
@@ -70,7 +63,8 @@ public class TestController {
 
     @PostMapping("/verify/whoIs")
     public TestCase getWhoIsForData(@RequestBody TestCase test) throws Exception {
-        queryWhoIsAndPingUrl(test);
+        SiteService siteService = new SiteService();
+        siteService.queryWhoIsAndPingUrl(test);
         return test;
     }
 }

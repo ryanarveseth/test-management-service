@@ -14,4 +14,9 @@ import java.util.Date;
 public class Alert {
     private Date date;
     private String message;
+
+    public Alert(String message) {
+        this.date = new Date();
+        this.message = message;
+    }
 }
